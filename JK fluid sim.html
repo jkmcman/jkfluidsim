@@ -1,0 +1,276 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>JKFS</title>
+<style>
+body{
+  margin:0;
+  overflow:hidden;
+  background:#000;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+canvas{
+  display:block;
+  touch-action:none;
+}
+button{
+  margin:10px;
+  padding:10px 20px;
+  font-size:16px;
+}
+</style>
+</head>
+<body>
+
+
+<button id="spawnBtn">Hold or click to spawn water</button>
+<canvas id="canvas"></canvas>
+
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+
+const buffer = document.createElement("canvas");
+buffer.width = canvas.width;
+buffer.height = canvas.height;
+const bctx = buffer.getContext("2d");
+
+
+const particles = [];
+const MAX_PARTICLES = 2500000;
+
+
+const physicsRadius = 14;   // collision size
+const renderRadius = 26;    // visual size (looks bigger)
+
+
+const gravity = 0.5;
+const damping = 0.985;
+const groundHeight = canvas.height * 0.9;
+
+
+let spawning = false;
+
+
+let mouse = {
+  x: canvas.width/2,
+  y: canvas.height/2,
+  prevX: canvas.width/2,
+  prevY: canvas.height/2,
+  vx: 0,
+  vy: 0
+};
+
+
+canvas.addEventListener("pointerdown", (e)=>{
+  canvas.setPointerCapture(e.pointerId);
+  updatePointer(e);
+});
+canvas.addEventListener("pointermove", updatePointer);
+canvas.addEventListener("pointerup",(e)=>{
+  canvas.releasePointerCapture(e.pointerId);
+});
+
+
+function updatePointer(e){
+  const rect = canvas.getBoundingClientRect();
+  mouse.x = e.clientX - rect.left;
+  mouse.y = e.clientY - rect.top;
+}
+
+
+const spawnBtn = document.getElementById("spawnBtn");
+spawnBtn.addEventListener("pointerdown",()=>spawning=true);
+spawnBtn.addEventListener("pointerup",()=>spawning=false);
+spawnBtn.addEventListener("pointerleave",()=>spawning=false);
+
+
+function spawnDrop(){
+  if(particles.length >= MAX_PARTICLES) return;
+  particles.push({
+    x: canvas.width/2 + (Math.random()-0.5)*60,
+    y: 50,
+    vx: (Math.random()-0.5)*4,
+    vy: 0
+  });
+}
+
+
+function physics(){
+
+
+  mouse.vx = mouse.x - mouse.prevX;
+  mouse.vy = mouse.y - mouse.prevY;
+
+
+  // Separate caps
+  mouse.vx = Math.max(-40, Math.min(40, mouse.vx));
+  mouse.vy = Math.max(-20, Math.min(20, mouse.vy)); // slower vertical
+
+
+  mouse.prevX = mouse.x;
+  mouse.prevY = mouse.y;
+
+
+  for(let p of particles){
+
+
+    p.vy += gravity;
+
+
+    const dx = p.x - mouse.x;
+    const dy = p.y - mouse.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const influence = 170;
+
+
+    if(dist < influence && dist > 0){
+      const factor = (influence - dist)/influence;
+
+
+      // Horizontal responsive
+      p.vx += mouse.vx * factor * 0.22;
+
+
+      // Vertical calmer
+      p.vy += mouse.vy * factor * 0.08;
+
+
+      const swirlX = -mouse.vy;
+      const swirlY = mouse.vx;
+
+
+      p.vx += swirlX * factor * 0.12;
+      p.vy += swirlY * factor * 0.08;
+    }
+
+
+    p.vx *= damping;
+    p.vy *= damping;
+
+
+    p.x += p.vx;
+    p.y += p.vy;
+
+
+    if(p.x < physicsRadius){
+      p.x = physicsRadius;
+      p.vx *= -0.4;
+    }
+    if(p.x > canvas.width - physicsRadius){
+      p.x = canvas.width - physicsRadius;
+      p.vx *= -0.4;
+    }
+
+
+    if(p.y > groundHeight){
+      p.y = groundHeight;
+      p.vy *= -0.2;
+    }
+  }
+
+
+  // Strong spreading
+  for(let i=0;i<particles.length;i++){
+    for(let j=i+1;j<particles.length;j++){
+      let a = particles[i];
+      let b = particles[j];
+
+
+      let dx = b.x - a.x;
+      let dy = b.y - a.y;
+      let dist = Math.sqrt(dx*dx + dy*dy);
+      let minDist = physicsRadius * 1.2;
+
+
+      if(dist < minDist && dist > 0.01){
+        let overlap = (minDist - dist) / 2;
+        let nx = dx / dist;
+        let ny = dy / dist;
+
+
+        const spreadStrength = 2.2;
+
+
+        a.x -= nx * overlap * spreadStrength;
+        a.y -= ny * overlap * spreadStrength;
+        b.x += nx * overlap * spreadStrength;
+        b.y += ny * overlap * spreadStrength;
+      }
+    }
+  }
+}
+
+
+function render(){
+
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  bctx.clearRect(0,0,buffer.width,buffer.height);
+
+
+  for(let p of particles){
+
+
+    const gradient = bctx.createRadialGradient(
+      p.x, p.y, 0,
+      p.x, p.y, renderRadius
+    );
+
+
+    gradient.addColorStop(0, "rgba(0,150,255,1)");
+    gradient.addColorStop(1, "rgba(0,150,255,0)");
+
+
+    bctx.fillStyle = gradient;
+    bctx.beginPath();
+    bctx.arc(p.x,p.y,renderRadius,0,Math.PI*2);
+    bctx.fill();
+  }
+
+
+  const imageData = bctx.getImageData(0,0,buffer.width,buffer.height);
+  const data = imageData.data;
+
+
+  for(let i=0;i<data.length;i+=4){
+    if(data[i+3] > 110){
+      data[i] = 50;
+      data[i+1] = 150;
+      data[i+2] = 255;
+      data[i+3] = 255;
+    } else {
+      data[i+3] = 0;
+    }
+  }
+
+
+  ctx.putImageData(imageData,0,0);
+
+
+  ctx.fillStyle="#333";
+  ctx.fillRect(0, groundHeight, canvas.width, canvas.height-groundHeight);
+}
+
+
+function loop(){
+  if(spawning) spawnDrop();
+  physics();
+  render();
+  requestAnimationFrame(loop);
+}
+
+
+loop();
+</script>
+</body>
+</html>
