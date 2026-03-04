@@ -49,9 +49,10 @@ const particles = [];
 const MAX_PARTICLES = 250000000000000;
 
 
-const physicsRadius = 17;   // collision size
-const renderRadius = 30;    // visual size
-
+const physicsRadius = 30;   // collision size
+const renderRadius = 17;    // visual size
+// ya it's flipped for some reason
+  
 const gravity = 0.5;
 const damping = 0.985;
 const groundHeight = canvas.height * 0.9;
@@ -272,6 +273,7 @@ loop();
 </script>
 </body>
 </html>
+
 
 
 
