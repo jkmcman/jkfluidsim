@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>JKFS</title>
+<title>JK fluid sim</title>
 <style>
 body{
   margin:0;
@@ -46,11 +46,11 @@ const bctx = buffer.getContext("2d");
 
 
 const particles = [];
-const MAX_PARTICLES = 2500000;
+const MAX_PARTICLES = 250000000000000;
 
 
-const physicsRadius = 14;   // collision size
-const renderRadius = 26;    // visual size (looks bigger)
+const physicsRadius = 10;   // collision size
+const renderRadius = 25;    // visual size
 
 
 const gravity = 0.5;
@@ -112,10 +112,9 @@ function physics(){
   mouse.vy = mouse.y - mouse.prevY;
 
 
-  // Separate caps
+  // separate caps
   mouse.vx = Math.max(-40, Math.min(40, mouse.vx));
-  mouse.vy = Math.max(-20, Math.min(20, mouse.vy)); // slower vertical
-
+  mouse.vy = Math.max(-45, Math.min(45, mouse.vy));
 
   mouse.prevX = mouse.x;
   mouse.prevY = mouse.y;
@@ -137,12 +136,12 @@ function physics(){
       const factor = (influence - dist)/influence;
 
 
-      // Horizontal responsive
+      // horizontal
       p.vx += mouse.vx * factor * 0.22;
 
 
-      // Vertical calmer
-      p.vy += mouse.vy * factor * 0.08;
+      // vertical
+      p.vy += mouse.vy * factor * 0.26;
 
 
       const swirlX = -mouse.vy;
@@ -150,7 +149,7 @@ function physics(){
 
 
       p.vx += swirlX * factor * 0.12;
-      p.vy += swirlY * factor * 0.08;
+      p.vy += swirlY * factor * 0.16;
     }
 
 
@@ -179,7 +178,7 @@ function physics(){
   }
 
 
-  // Strong spreading
+  // spread
   for(let i=0;i<particles.length;i++){
     for(let j=i+1;j<particles.length;j++){
       let a = particles[i];
@@ -198,7 +197,7 @@ function physics(){
         let ny = dy / dist;
 
 
-        const spreadStrength = 2.2;
+        const spreadStrength = 4;
 
 
         a.x -= nx * overlap * spreadStrength;
