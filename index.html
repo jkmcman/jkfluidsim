@@ -49,8 +49,8 @@ const particles = [];
 const MAX_PARTICLES = 250000000000000;
 
 
-const physicsRadius = 10;   // collision size
-const renderRadius = 25;    // visual size
+const physicsRadius = 19;   // collision size
+const renderRadius = 26;    // visual size
 
 
 const gravity = 0.5;
@@ -148,8 +148,8 @@ function physics(){
       const swirlY = mouse.vx;
 
 
-      p.vx += swirlX * factor * 0.12;
-      p.vy += swirlY * factor * 0.16;
+      p.vx += swirlX * factor * 0.5;
+      p.vy += swirlY * factor * 0.5;
     }
 
 
@@ -273,4 +273,5 @@ loop();
 </script>
 </body>
 </html>
+
 
